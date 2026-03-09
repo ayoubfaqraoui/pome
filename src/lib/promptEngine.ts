@@ -40,7 +40,7 @@ Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash", // Reverting back to 2.0-flash as 2.5 might not be available
+      model: "gemini-2.5-flash", 
       contents: [{ parts: [{ text: `Raw Prompt: "${rawPrompt}"` }] }],
       config: {
         systemInstruction,
