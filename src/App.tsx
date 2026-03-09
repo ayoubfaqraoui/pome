@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { enhancePrompt, type EnhancementConfig } from './lib/promptEngine'
 
+import logoImage from './assets/logo.png'
+
 const tones = ['Professional', 'Casual', 'Friendly', 'Technical', 'Creative', 'Academic']
 const roles = ['Expert Assistant', 'Software Developer', 'Letterboxd Reviewer', 'Creative Writer', 'Teacher', 'Consultant']
 const formats = ['Structured Markdown', 'JSON', 'Bullet Points', 'Step by Step', 'Code Block']
@@ -115,7 +117,10 @@ function App() {
       <div className="background-glow glow-2"></div>
 
       <header className="brand-header">
-        <h1 className="logo">Pome.</h1>
+        <div className="logo-container">
+          <img src={logoImage} alt="Pome Logo" className="app-logo" />
+          <h1 className="logo-text">Pome.</h1>
+        </div>
         <p className="subtitle">Distill your raw thoughts into powerful AI prompts.</p>
       </header>
 

@@ -69,15 +69,32 @@ body {
 .brand-header {
   text-align: center;
   margin-bottom: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.logo {
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.app-logo {
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.logo-text {
   font-family: var(--font-serif);
   font-size: 4rem;
   font-weight: 500;
   letter-spacing: -0.05em;
   color: var(--text-main);
-  margin-bottom: 0.5rem;
   background: linear-gradient(180deg, #fff 0%, #aaa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
