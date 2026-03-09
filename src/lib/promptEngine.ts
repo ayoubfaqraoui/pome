@@ -32,9 +32,9 @@ You must output ONLY a valid JSON object with exactly two keys:
 Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
 
   try {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
     if (!apiKey) {
-      throw new Error("Missing Gemini API Key. Please check your .env file.");
+      throw new Error("Missing Gemini API Key. Please check your Vercel Environment Variables.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -57,8 +57,9 @@ Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
       enhancedPrompt: result.enhancedPrompt || "Failed to generate prompt.",
       explanation: result.explanation || "No explanation provided."
     };
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error("Failed to connect to the AI service or parse response.");
+  } catch (error: any) {
+    console.error("Gemini API Error details:", error);
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }
