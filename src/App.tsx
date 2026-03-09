@@ -3,7 +3,7 @@ import './App.css'
 import { enhancePrompt, type EnhancementConfig } from './lib/promptEngine'
 
 const tones = ['Professional', 'Casual', 'Friendly', 'Technical', 'Creative', 'Academic']
-const roles = ['Expert Assistant', 'Software Developer', 'Data Analyst', 'Creative Writer', 'Teacher', 'Consultant']
+const roles = ['Expert Assistant', 'Software Developer', 'Letterboxd Reviewer', 'Creative Writer', 'Teacher', 'Consultant']
 const formats = ['Structured Markdown', 'JSON', 'Bullet Points', 'Step by Step', 'Code Block']
 
 function App() {
@@ -72,6 +72,13 @@ function App() {
       await navigator.clipboard.writeText(enhancedPrompt)
       setIsCopied(true)
       setTimeout(() => setIsCopied(false), 2000)
+    }
+  }
+
+  const openInAIStudio = async () => {
+    if (enhancedPrompt) {
+      await navigator.clipboard.writeText(enhancedPrompt)
+      window.open('https://aistudio.google.com/prompts/new_chat', '_blank')
     }
   }
 
@@ -163,9 +170,14 @@ function App() {
             <div className="result-card enhanced">
               <div className="card-header">
                 <h3>The Prompt</h3>
-                <button className={`copy-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard}>
-                  {isCopied ? 'Copied!' : 'Copy'}
-                </button>
+                <div className="header-actions">
+                  <button className={`copy-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard}>
+                    {isCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button className="copy-btn ai-studio-btn" onClick={openInAIStudio} title="Copies prompt and opens AI Studio">
+                    Run in AI Studio
+                  </button>
+                </div>
               </div>
               <div className="card-body">
                 <p className="prompt-text">{enhancedPrompt}</p>

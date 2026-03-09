@@ -303,6 +303,12 @@ body {
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .copy-btn {
   background: transparent;
   border: 1px solid var(--border-subtle);
@@ -322,6 +328,18 @@ body {
 .copy-btn.copied {
   color: #10b981;
   border-color: #10b981;
+}
+
+.ai-studio-btn {
+  background: var(--accent-glow);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.ai-studio-btn:hover {
+  background: var(--accent-color);
+  color: var(--bg-base);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .card-body {
