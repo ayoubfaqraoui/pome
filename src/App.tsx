@@ -21,6 +21,7 @@ function App() {
   })
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const resultsRef = useRef<HTMLElement>(null)
 
   // Auto-resize textarea
   useEffect(() => {
@@ -29,6 +30,38 @@ function App() {
       textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 120)}px`
     }
   }, [rawPrompt])
+
+  // Scroll to results when they appear
+  useEffect(() => {
+    if (enhancedPrompt && !isLoading) {
+      let attempts = 0;
+      
+      const scrollToResults = () => {
+        if (resultsRef.current) {
+          const rect = resultsRef.current.getBoundingClientRect();
+          
+          // Only scroll if the element has actually been laid out (height > 0)
+          if (rect.height > 0 || attempts > 5) {
+            const absoluteTop = rect.top + window.scrollY;
+            window.scrollTo({
+              top: absoluteTop - 40,
+              behavior: 'smooth'
+            });
+            return;
+          }
+        }
+        
+        // If element isn't ready or laid out yet, try again shortly
+        if (attempts < 10) {
+          attempts++;
+          requestAnimationFrame(() => setTimeout(scrollToResults, 50));
+        }
+      };
+
+      // Start the scrolling attempt process
+      requestAnimationFrame(() => setTimeout(scrollToResults, 50));
+    }
+  }, [enhancedPrompt, isLoading])
 
   // Keyboard shortcut (Ctrl + Enter)
   useEffect(() => {
@@ -166,7 +199,7 @@ function App() {
         </section>
 
         {(enhancedPrompt || explanation) && (
-          <section className="results-section">
+          <section className="results-section" ref={resultsRef}>
             <div className="result-card enhanced">
               <div className="card-header">
                 <h3>The Prompt</h3>
