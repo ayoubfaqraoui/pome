@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
 export interface EnhancementConfig {
   tone?: string;
@@ -38,25 +38,30 @@ You must output ONLY a valid JSON object with exactly two keys:
 Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
 
   try {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+    const apiKey = import.meta.env.VITE_NVIDIA_API_KEY?.trim();
     if (!apiKey) {
-      throw new Error("Missing Gemini API Key. Please check your Vercel Environment Variables.");
+      throw new Error("Missing NVIDIA API Key. Please check your Vercel Environment Variables.");
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-    
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash", 
-      contents: [{ parts: [{ text: `Raw Prompt: "${rawPrompt}"` }] }],
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-        responseMimeType: "application/json",
-      },
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      baseURL: "https://integrate.api.nvidia.com/v1",
+      dangerouslyAllowBrowser: true,
     });
 
-    let responseText = response.text || "{}";
+    const completion = await openai.chat.completions.create({
+      model: "mistralai/devstral-2-123b-instruct-2512",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: `Raw Prompt: "${rawPrompt}"` }
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+    });
+
+    let responseText = completion.choices[0]?.message?.content || "{}";
     responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    
     const result = JSON.parse(responseText);
     
     return {
@@ -64,7 +69,7 @@ Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
       explanation: result.explanation || "No explanation provided."
     };
   } catch (error: any) {
-    console.error("Gemini API Error details:", error);
+    console.error("NIM API Error details:", error);
     const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
     throw new Error(`AI Error: ${errorMessage}`);
   }
