@@ -43,23 +43,30 @@ Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
       throw new Error("Missing NVIDIA API Key. Please check your Vercel Environment Variables.");
     }
 
-    const openai = new OpenAI({
-      apiKey: apiKey,
-      baseURL: `${window.location.origin}/nvidia-api/v1`,
-      dangerouslyAllowBrowser: true,
+    const response = await fetch("/nvidia-api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "mistralai/devstral-2-123b-instruct-2512",
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: `Raw Prompt: "${rawPrompt}"` }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      }),
     });
 
-    const completion = await openai.chat.completions.create({
-      model: "mistralai/devstral-2-123b-instruct-2512",
-      messages: [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: `Raw Prompt: "${rawPrompt}"` }
-      ],
-      temperature: 0.7,
-      max_tokens: 4096,
-    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`HTTP Error ${response.status}: ${text}`);
+    }
 
-    let responseText = completion.choices[0]?.message?.content || "{}";
+    const data = await response.json();
+    let responseText = data.choices?.[0]?.message?.content || "{}";
     responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
     
     const result = JSON.parse(responseText);
