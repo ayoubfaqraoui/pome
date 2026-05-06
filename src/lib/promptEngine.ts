@@ -45,7 +45,7 @@ Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
 
     const openai = new OpenAI({
       apiKey: apiKey,
-      baseURL: "https://integrate.api.nvidia.com/v1",
+      baseURL: `${window.location.origin}/nvidia-api/v1`,
       dangerouslyAllowBrowser: true,
     });
 
