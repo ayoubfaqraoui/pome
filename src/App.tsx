@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
-import { enhancePrompt, type EnhancementConfig } from './lib/promptEngine'
+import { enhancePrompt, extendPrompt, type EnhancementConfig } from './lib/promptEngine'
 
 const tones = ['Professional', 'Casual', 'Friendly', 'Technical', 'Creative', 'Academic']
 const roles = ['Expert Assistant', 'Software Developer', 'Letterboxd Reviewer', 'Creative Writer', 'Teacher', 'Consultant']
@@ -13,6 +13,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isCopied, setIsCopied] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isExtending, setIsExtending] = useState(false)
+  const [extendInput, setExtendInput] = useState('')
+  const [isExtendLoading, setIsExtendLoading] = useState(false)
 
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
@@ -88,6 +92,8 @@ function App() {
     setError('')
     setEnhancedPrompt('')
     setExplanation('')
+    setIsEditing(false)
+    setIsExtending(false)
 
     try {
       const result = await enhancePrompt(rawPrompt, config)
@@ -112,6 +118,32 @@ function App() {
     if (enhancedPrompt) {
       await navigator.clipboard.writeText(enhancedPrompt)
       window.open('https://aistudio.google.com/prompts/new_chat', '_blank')
+    }
+  }
+
+  const openInGemini = async () => {
+    if (enhancedPrompt) {
+      await navigator.clipboard.writeText(enhancedPrompt)
+      window.open('https://gemini.google.com/app', '_blank')
+    }
+  }
+
+  const handleExtend = async () => {
+    if (!extendInput.trim()) return
+
+    setIsExtendLoading(true)
+    setError('')
+    
+    try {
+      const result = await extendPrompt(enhancedPrompt, extendInput, config)
+      setEnhancedPrompt(result.enhancedPrompt)
+      setExplanation(result.explanation)
+      setExtendInput('')
+      setIsExtending(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
+    } finally {
+      setIsExtendLoading(false)
     }
   }
 
@@ -204,16 +236,53 @@ function App() {
               <div className="card-header">
                 <h3>The Prompt</h3>
                 <div className="header-actions">
+                  <button className="copy-btn extend-btn" onClick={() => setIsExtending(!isExtending)} title="Add more details to this prompt">
+                    {isExtending ? 'Cancel' : 'Extend'}
+                  </button>
+                  <button className="copy-btn edit-btn" onClick={() => setIsEditing(!isEditing)} title="Manually edit the prompt">
+                    {isEditing ? 'Done' : 'Edit'}
+                  </button>
                   <button className={`copy-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard}>
                     {isCopied ? 'Copied!' : 'Copy'}
                   </button>
                   <button className="copy-btn ai-studio-btn" onClick={openInAIStudio} title="Copies prompt and opens AI Studio">
                     Run in AI Studio
                   </button>
+                  <button className="copy-btn ai-studio-btn" onClick={openInGemini} title="Copies prompt and opens Gemini">
+                    Run in Gemini
+                  </button>
                 </div>
               </div>
               <div className="card-body">
-                <p className="prompt-text">{enhancedPrompt}</p>
+                {isEditing ? (
+                  <textarea 
+                    className="prompt-input edit-mode" 
+                    value={enhancedPrompt}
+                    onChange={(e) => setEnhancedPrompt(e.target.value)}
+                    autoFocus
+                  />
+                ) : (
+                  <p className="prompt-text">{enhancedPrompt}</p>
+                )}
+
+                {isExtending && (
+                  <div className="extend-section">
+                    <input 
+                      type="text" 
+                      className="extend-input" 
+                      placeholder="e.g. Make it sound more urgent, add a section about pricing..." 
+                      value={extendInput}
+                      onChange={(e) => setExtendInput(e.target.value)}
+                      onKeyDown={(e) => { if(e.key === 'Enter') handleExtend() }}
+                      disabled={isExtendLoading}
+                      autoFocus
+                    />
+                    <button className={`generate-btn extend-submit-btn ${isExtendLoading ? 'loading' : ''}`} onClick={handleExtend} disabled={isExtendLoading}>
+                      <span className="btn-text">{isExtendLoading ? 'Extending...' : 'Submit'}</span>
+                      <div className="btn-glow"></div>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

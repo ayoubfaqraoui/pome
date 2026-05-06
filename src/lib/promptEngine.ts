@@ -81,3 +81,59 @@ Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
     throw new Error(`AI Error: ${errorMessage}`);
   }
 }
+
+export async function extendPrompt(originalPrompt: string, extensionInstruction: string, config: EnhancementConfig = {}): Promise<EnhancementResult> {
+  const { tone = "professional", role = "expert assistant", format = "structured markdown" } = config;
+
+  const systemInstruction = `You are "Pome", an elite, intuitive Prompt Engineer. Your objective is to EXTEND and IMPROVE an existing prompt based on new instructions from the user.
+
+Key Principles & Rules:
+1. PRESERVE THE CORE: Keep the core intent, context, and structure of the original prompt intact. Do not rewrite it completely unless necessary to integrate the new instructions smoothly.
+2. SEAMLESS INTEGRATION: The new additions should flow naturally within the existing prompt. Do not just append them at the end if they belong in the middle.
+3. GET STRAIGHT TO THE POINT: No preambles. Output the extended prompt directly.
+4. TONE & PERSONA: Maintain the requested '${tone}' tone and '${role}' persona.
+5. FORMAT: Use '${format}' format.
+
+OUTPUT REQUIREMENTS:
+You must output ONLY a valid JSON object with exactly two keys:
+- "enhancedPrompt": The final, extended prompt text.
+- "explanation": A brief explanation of how you integrated the new details.
+
+Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
+
+  try {
+    const apiKey = import.meta.env.VITE_NVIDIA_API_KEY?.trim();
+    if (!apiKey) throw new Error("Missing NVIDIA API Key.");
+
+    const response = await fetch("/nvidia-api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "mistralai/devstral-2-123b-instruct-2512",
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: `Original Prompt:\n"""\n${originalPrompt}\n"""\n\nExtension Request:\n"${extensionInstruction}"` }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      }),
+    });
+
+    if (!response.ok) throw new Error(`HTTP Error ${response.status}: ${await response.text()}`);
+
+    const data = await response.json();
+    let responseText = data.choices?.[0]?.message?.content || "{}";
+    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const result = JSON.parse(responseText);
+    
+    return {
+      enhancedPrompt: result.enhancedPrompt || "Failed to extend prompt.",
+      explanation: result.explanation || "No explanation provided."
+    };
+  } catch (error: any) {
+    throw new Error(`AI Error: ${error.message}`);
+  }
+}
