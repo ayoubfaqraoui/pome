@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Copy, Download, ThumbsUp, ThumbsDown, ChevronDown, Check, Loader2 } from 'lucide-react'
+import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Loader2 } from 'lucide-react'
 import './App.css'
 import { enhancePrompt, extendPrompt, type EnhancementConfig } from './lib/promptEngine'
 
@@ -14,8 +14,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isCopied, setIsCopied] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
-  const [isDisliked, setIsDisliked] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isExtending, setIsExtending] = useState(false)
+  const [extendInput, setExtendInput] = useState('')
+  const [isExtendLoading, setIsExtendLoading] = useState(false)
 
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
@@ -263,25 +265,64 @@ function App() {
               <div className="card-header">
                 <h3>The Prompt</h3>
                 <div className="header-actions">
-                  <button className="icon-btn" onClick={handleDownload} title="Download as Markdown">
-                    <Download size={16} strokeWidth={1.5} />
+                  <button className={`icon-btn ${isExtending ? 'active' : ''}`} onClick={() => setIsExtending(!isExtending)} title="Add more details to this prompt">
+                    {isExtending ? <X size={18} strokeWidth={1.5} /> : <Wand2 size={18} strokeWidth={1.5} />}
+                  </button>
+                  <button className={`icon-btn ${isEditing ? 'active' : ''}`} onClick={() => setIsEditing(!isEditing)} title={isEditing ? "Save edits" : "Manually edit the prompt"}>
+                    {isEditing ? <Check size={18} strokeWidth={1.5} /> : <Pencil size={18} strokeWidth={1.5} />}
                   </button>
                   <button className={`icon-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard} title="Copy to clipboard">
-                    {isCopied ? <Check size={16} strokeWidth={1.5} /> : <Copy size={16} strokeWidth={1.5} />}
+                    {isCopied ? <Check size={18} strokeWidth={1.5} /> : <Copy size={18} strokeWidth={1.5} />}
                   </button>
-                  <button className={`icon-btn ${isLiked ? 'active' : ''}`} onClick={() => { setIsLiked(!isLiked); setIsDisliked(false); }} title="Good response">
-                    <ThumbsUp size={16} strokeWidth={1.5} />
+                  <button className="icon-btn" onClick={handleDownload} title="Download as Markdown">
+                    <Download size={18} strokeWidth={1.5} />
                   </button>
-                  <button className={`icon-btn ${isDisliked ? 'active' : ''}`} onClick={() => { setIsDisliked(!isDisliked); setIsLiked(false); }} title="Bad response">
-                    <ThumbsDown size={16} strokeWidth={1.5} />
+                  <div className="divider" />
+                  <button className="icon-btn ai-studio-btn" onClick={openInAIStudio} title="Open in Google AI Studio">
+                    <Terminal size={18} strokeWidth={1.5} />
                   </button>
-                  <button className="icon-btn" title="More options">
-                    <ChevronDown size={16} strokeWidth={1.5} />
+                  <button className="icon-btn gemini-btn" onClick={openInGemini} title="Open in Google Gemini">
+                    <Sparkles size={18} strokeWidth={1.5} />
                   </button>
                 </div>
               </div>
               <div className="card-body">
-                <p className="prompt-text">{enhancedPrompt}</p>
+                {isEditing ? (
+                  <textarea 
+                    ref={editAreaRef}
+                    className="prompt-input edit-mode" 
+                    value={enhancedPrompt}
+                    onChange={(e) => setEnhancedPrompt(e.target.value)}
+                    autoFocus
+                  />
+                ) : (
+                  <p className="prompt-text">{enhancedPrompt}</p>
+                )}
+
+                {isExtending && (
+                  <div className="extend-section">
+                    <input 
+                      type="text" 
+                      className="extend-input" 
+                      placeholder="e.g. Make it sound more urgent, add a section about pricing..." 
+                      value={extendInput}
+                      onChange={(e) => setExtendInput(e.target.value)}
+                      onKeyDown={(e) => { if(e.key === 'Enter') handleExtend() }}
+                      disabled={isExtendLoading}
+                      autoFocus
+                    />
+                    <button className="generate-btn extend-submit-btn" onClick={handleExtend} disabled={isExtendLoading}>
+                      {isExtendLoading ? (
+                        <>
+                          <Loader2 className="spinner" size={16} strokeWidth={2} />
+                          <span className="btn-text">Extending</span>
+                        </>
+                      ) : (
+                        <span className="btn-text">Submit</span>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
