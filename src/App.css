@@ -298,7 +298,7 @@ body {
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 1.25rem;
   align-items: center;
 }
 
@@ -330,7 +330,7 @@ body {
 }
 
 .icon-btn.active, .icon-btn.copied {
-  color: #10b981;
+  color: var(--accent-color);
   background: transparent;
   border: none;
   box-shadow: none;

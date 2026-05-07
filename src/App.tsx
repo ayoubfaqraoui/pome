@@ -266,23 +266,23 @@ function App() {
                 <h3>The Prompt</h3>
                 <div className="header-actions">
                   <button className={`icon-btn ${isExtending ? 'active' : ''}`} onClick={() => setIsExtending(!isExtending)} title="Add more details to this prompt">
-                    {isExtending ? <X size={18} strokeWidth={1.5} /> : <Wand2 size={18} strokeWidth={1.5} />}
+                    {isExtending ? <X size={18} strokeWidth={1.75} /> : <Wand2 size={18} strokeWidth={1.75} />}
                   </button>
                   <button className={`icon-btn ${isEditing ? 'active' : ''}`} onClick={() => setIsEditing(!isEditing)} title={isEditing ? "Save edits" : "Manually edit the prompt"}>
-                    {isEditing ? <Check size={18} strokeWidth={1.5} /> : <Pencil size={18} strokeWidth={1.5} />}
+                    {isEditing ? <Check size={18} strokeWidth={1.75} /> : <Pencil size={18} strokeWidth={1.75} />}
                   </button>
                   <button className={`icon-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard} title="Copy to clipboard">
-                    {isCopied ? <Check size={18} strokeWidth={1.5} /> : <Copy size={18} strokeWidth={1.5} />}
+                    {isCopied ? <Check size={18} strokeWidth={1.75} /> : <Copy size={18} strokeWidth={1.75} />}
                   </button>
                   <button className="icon-btn" onClick={handleDownload} title="Download as Markdown">
-                    <Download size={18} strokeWidth={1.5} />
+                    <Download size={18} strokeWidth={1.75} />
                   </button>
                   <div className="divider" />
                   <button className="icon-btn ai-studio-btn" onClick={openInAIStudio} title="Open in Google AI Studio">
-                    <Terminal size={18} strokeWidth={1.5} />
+                    <Terminal size={18} strokeWidth={1.75} />
                   </button>
                   <button className="icon-btn gemini-btn" onClick={openInGemini} title="Open in Google Gemini">
-                    <Sparkles size={18} strokeWidth={1.5} />
+                    <Sparkles size={18} strokeWidth={1.75} />
                   </button>
                 </div>
               </div>
