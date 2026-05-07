@@ -26,6 +26,7 @@ function App() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resultsRef = useRef<HTMLElement>(null)
+  const editAreaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-resize textarea
   useEffect(() => {
@@ -34,6 +35,14 @@ function App() {
       textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 120)}px`
     }
   }, [rawPrompt])
+
+  // Auto-resize edit textarea
+  useEffect(() => {
+    if (isEditing && editAreaRef.current) {
+      editAreaRef.current.style.height = 'auto'
+      editAreaRef.current.style.height = `${Math.max(editAreaRef.current.scrollHeight, 200)}px`
+    }
+  }, [enhancedPrompt, isEditing])
 
   // Scroll to results when they appear
   useEffect(() => {
@@ -256,6 +265,7 @@ function App() {
               <div className="card-body">
                 {isEditing ? (
                   <textarea 
+                    ref={editAreaRef}
                     className="prompt-input edit-mode" 
                     value={enhancedPrompt}
                     onChange={(e) => setEnhancedPrompt(e.target.value)}

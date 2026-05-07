@@ -393,6 +393,8 @@ body {
   border-radius: var(--radius-sm);
   padding: 1rem;
   width: 100%;
+  overflow: hidden;
+  resize: none;
 }
 
 .extend-btn {
