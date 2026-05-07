@@ -250,24 +250,14 @@ body {
   z-index: 2;
 }
 
-.generate-btn.loading .btn-text {
-  animation: pulseText 1.5s infinite;
+.spinner {
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
 }
 
-.btn-glow {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  transition: 0.5s;
-  z-index: 1;
-}
-
-.generate-btn:hover .btn-glow {
-  left: 100%;
-  transition: 0.5s;
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .results-section {
@@ -312,37 +302,61 @@ body {
   align-items: center;
 }
 
-.copy-btn {
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   background: transparent;
-  border: 1px solid var(--border-subtle);
+  border: none;
   color: var(--text-muted);
-  padding: 0.3rem 0.8rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.copy-btn:hover {
+.icon-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.icon-btn:hover::before {
+  opacity: 1;
+}
+
+.icon-btn:hover {
   color: var(--text-main);
-  border-color: var(--border-focus);
 }
 
-.copy-btn.copied {
-  color: #10b981;
-  border-color: #10b981;
+.icon-btn:active {
+  transform: scale(0.92);
 }
 
-.ai-studio-btn {
-  background: var(--accent-glow);
-  color: var(--accent-color);
-  border-color: var(--accent-color);
+.icon-btn.active, .icon-btn.copied {
+  color: var(--text-main);
 }
 
-.ai-studio-btn:hover {
-  background: var(--accent-color);
-  color: var(--bg-base);
-  box-shadow: 0 0 10px var(--accent-glow);
+.divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 0.5rem;
+}
+
+/* Minimal SVGs */
+.icon-btn svg {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-btn:hover svg {
+  transform: scale(1.05);
 }
 
 .card-body {
@@ -378,11 +392,7 @@ body {
   }
 }
 
-@keyframes pulseText {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
+
 
 /* Edit & Extend Mode Styles */
 .prompt-input.edit-mode {
@@ -397,21 +407,7 @@ body {
   resize: none;
 }
 
-.extend-btn {
-  background: rgba(255, 255, 255, 0.05);
-}
 
-.extend-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.edit-btn {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.edit-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
 
 .extend-section {
   display: flex;

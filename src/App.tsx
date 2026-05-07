@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Copy, Download, ThumbsUp, ThumbsDown, ChevronDown, Check, Loader2 } from 'lucide-react'
 import './App.css'
 import { enhancePrompt, extendPrompt, type EnhancementConfig } from './lib/promptEngine'
 
@@ -13,10 +14,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isCopied, setIsCopied] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [isExtending, setIsExtending] = useState(false)
-  const [extendInput, setExtendInput] = useState('')
-  const [isExtendLoading, setIsExtendLoading] = useState(false)
+  const [isLiked, setIsLiked] = useState(false)
+  const [isDisliked, setIsDisliked] = useState(false)
 
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
@@ -137,6 +136,19 @@ function App() {
     }
   }
 
+  const handleDownload = () => {
+    if (!enhancedPrompt) return;
+    const blob = new Blob([enhancedPrompt], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pome-prompt-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleExtend = async () => {
     if (!extendInput.trim()) return
 
@@ -229,12 +241,18 @@ function App() {
           <div className="action-row">
             {error && <span className="error-message">{error}</span>}
             <button
-              className={`generate-btn ${isLoading ? 'loading' : ''}`}
+              className="generate-btn"
               onClick={handleEnhance}
               disabled={isLoading}
             >
-              <span className="btn-text">{isLoading ? 'Distilling...' : 'Enhance'}</span>
-              <div className="btn-glow"></div>
+              {isLoading ? (
+                <>
+                  <Loader2 className="spinner" size={16} strokeWidth={2} />
+                  <span className="btn-text">Generating</span>
+                </>
+              ) : (
+                <span className="btn-text">Enhance</span>
+              )}
             </button>
           </div>
         </section>
@@ -245,54 +263,25 @@ function App() {
               <div className="card-header">
                 <h3>The Prompt</h3>
                 <div className="header-actions">
-                  <button className="copy-btn extend-btn" onClick={() => setIsExtending(!isExtending)} title="Add more details to this prompt">
-                    {isExtending ? 'Cancel' : 'Extend'}
+                  <button className="icon-btn" onClick={handleDownload} title="Download as Markdown">
+                    <Download size={16} strokeWidth={1.5} />
                   </button>
-                  <button className="copy-btn edit-btn" onClick={() => setIsEditing(!isEditing)} title="Manually edit the prompt">
-                    {isEditing ? 'Done' : 'Edit'}
+                  <button className={`icon-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard} title="Copy to clipboard">
+                    {isCopied ? <Check size={16} strokeWidth={1.5} /> : <Copy size={16} strokeWidth={1.5} />}
                   </button>
-                  <button className={`copy-btn ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard}>
-                    {isCopied ? 'Copied!' : 'Copy'}
+                  <button className={`icon-btn ${isLiked ? 'active' : ''}`} onClick={() => { setIsLiked(!isLiked); setIsDisliked(false); }} title="Good response">
+                    <ThumbsUp size={16} strokeWidth={1.5} />
                   </button>
-                  <button className="copy-btn ai-studio-btn" onClick={openInAIStudio} title="Copies prompt and opens AI Studio">
-                    Run in AI Studio
+                  <button className={`icon-btn ${isDisliked ? 'active' : ''}`} onClick={() => { setIsDisliked(!isDisliked); setIsLiked(false); }} title="Bad response">
+                    <ThumbsDown size={16} strokeWidth={1.5} />
                   </button>
-                  <button className="copy-btn ai-studio-btn" onClick={openInGemini} title="Copies prompt and opens Gemini">
-                    Run in Gemini
+                  <button className="icon-btn" title="More options">
+                    <ChevronDown size={16} strokeWidth={1.5} />
                   </button>
                 </div>
               </div>
               <div className="card-body">
-                {isEditing ? (
-                  <textarea 
-                    ref={editAreaRef}
-                    className="prompt-input edit-mode" 
-                    value={enhancedPrompt}
-                    onChange={(e) => setEnhancedPrompt(e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  <p className="prompt-text">{enhancedPrompt}</p>
-                )}
-
-                {isExtending && (
-                  <div className="extend-section">
-                    <input 
-                      type="text" 
-                      className="extend-input" 
-                      placeholder="e.g. Make it sound more urgent, add a section about pricing..." 
-                      value={extendInput}
-                      onChange={(e) => setExtendInput(e.target.value)}
-                      onKeyDown={(e) => { if(e.key === 'Enter') handleExtend() }}
-                      disabled={isExtendLoading}
-                      autoFocus
-                    />
-                    <button className={`generate-btn extend-submit-btn ${isExtendLoading ? 'loading' : ''}`} onClick={handleExtend} disabled={isExtendLoading}>
-                      <span className="btn-text">{isExtendLoading ? 'Extending...' : 'Submit'}</span>
-                      <div className="btn-glow"></div>
-                    </button>
-                  </div>
-                )}
+                <p className="prompt-text">{enhancedPrompt}</p>
               </div>
             </div>
 
