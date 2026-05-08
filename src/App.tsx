@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Loader2 } from 'lucide-react'
+import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather } from 'lucide-react'
 import './App.css'
 import { enhancePrompt, extendPrompt, type EnhancementConfig } from './lib/promptEngine'
 
@@ -249,8 +249,8 @@ function App() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="spinner" size={16} strokeWidth={2} />
-                  <span className="btn-text">Generating</span>
+                  <Feather className="feather-icon" size={16} strokeWidth={1} />
+                  <span className="btn-text weaving-text">Rising</span>
                 </>
               ) : (
                 <span className="btn-text">Enhance</span>
@@ -314,8 +314,8 @@ function App() {
                     <button className="generate-btn extend-submit-btn" onClick={handleExtend} disabled={isExtendLoading}>
                       {isExtendLoading ? (
                         <>
-                          <Loader2 className="spinner" size={16} strokeWidth={2} />
-                          <span className="btn-text">Extending</span>
+                          <Feather className="feather-icon" size={16} strokeWidth={1} />
+                          <span className="btn-text weaving-text">Rising</span>
                         </>
                       ) : (
                         <span className="btn-text">Submit</span>
