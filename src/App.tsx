@@ -143,7 +143,13 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-
+  // Auto-expand textarea height as user types — no browser resize handle needed
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [rawPrompt])
 
   // Scroll to results when they appear
   useEffect(() => {

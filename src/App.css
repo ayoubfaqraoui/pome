@@ -40,12 +40,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 4rem 1.5rem;
+  padding: 7rem 1.5rem 4rem;
   position: relative;
   z-index: 1;
 }
 
-/* Background ambient glows & Texture */
+/* Background: textured image fades into pure dark — prevents visual fatigue on scroll */
 .app-container::before {
   content: '';
   position: fixed;
@@ -53,20 +53,23 @@ body {
   background-image: url('./assets/socrates.jpg');
   background-size: cover;
   background-position: center center;
-  /* Restored original colors, kept slight darkening and blur for UI readability */
-  filter: brightness(0.6) contrast(1.2) blur(2px);
+  filter: brightness(0.55) contrast(1.25) blur(2px);
   opacity: 0.9;
   z-index: -4;
   pointer-events: none;
+  /* Mask: vivid top, fades to pure black by 75% of viewport height */
+  -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
 }
 
+/* Scanline texture overlay */
 .app-container::after {
   content: '';
   position: fixed;
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0) 50%, 
+    rgba(0, 0, 0, 0) 50%,
     rgba(0, 0, 0, 0.35) 50%
   );
   background-size: 100% 4px;
@@ -162,13 +165,17 @@ body {
 .composer-section {
   display: flex;
   flex-direction: column;
-  background: var(--bg-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-subtle);
+  /* Sharper glassmorphism: denser blur + razor-thin highlight border */
+  background: rgba(14, 14, 16, 0.80);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Extra inner highlight on top edge for depth */
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.04) inset,
+    0 30px 70px rgba(0, 0, 0, 0.65);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.6);
   overflow: visible;
 }
 
@@ -191,17 +198,20 @@ body {
   font-family: var(--font-sans);
   font-size: 1.125rem;
   line-height: 1.6;
-  resize: vertical;
+  /* JS controls height — no native resize handle */
+  resize: none;
   min-height: 150px;
-  max-height: 60vh;
-  outline: none;
-  overflow-y: auto;
+  /* No max-height cap: textarea grows freely with content */
+  outline: none !important;
+  box-shadow: none !important;
+  overflow-y: hidden;
   margin-bottom: 0;
   padding-bottom: 1rem;
 }
 
 .prompt-input::placeholder {
-  color: var(--border-focus);
+  /* Inviting but clearly secondary — WCAG AA at this opacity */
+  color: rgba(255, 255, 255, 0.38);
 }
 
 /* Input Footer & Configuration Inline */
@@ -256,11 +266,13 @@ body {
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
-  color: var(--text-muted);
+  /* Brightened from #8b8b93 — clear read, WCAG AA on dark bg */
+  color: #A3A3A3;
   font-size: 0.8rem;
   font-weight: 400;
   letter-spacing: 0.01em;
-  transition: all 0.25s ease;
+  /* Snappy 0.18s so hover feels immediate */
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
   white-space: nowrap;
 }
 
@@ -296,19 +308,20 @@ body {
 /* Menu — dark frosted glass, opens downward */
 .artistic-dropdown-menu, .model-dropdown-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  /* Increased gap: menu floats 10px below trigger instead of touching it */
+  top: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  width: auto;
-  min-width: 170px;
-  background: rgba(18, 18, 20, 0.92);
+  width: max-content;       /* always as wide as its widest item */
+  min-width: 190px;
+  background: rgba(18, 18, 20, 0.94);
   backdrop-filter: blur(24px) saturate(1.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
   padding: 0.35rem;
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 16px 48px rgba(0, 0, 0, 0.45),
     0 0 0 0.5px rgba(255, 255, 255, 0.04) inset;
   display: flex;
   flex-direction: column;
@@ -318,35 +331,40 @@ body {
 }
 
 @keyframes menuReveal {
-  from { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(0.97); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1);    }
 }
 
 /* Options inside the menu */
 .artistic-option, .model-option {
   background: transparent;
   border: none;
-  padding: 0.5rem 0.7rem;
+  padding: 0.52rem 0.85rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
   cursor: pointer;
-  color: var(--text-muted);
+  /* Brightened: #c8c8ce gives comfortable legibility on the dark menu bg */
+  color: #c8c8ce;
   font-size: 0.82rem;
   font-weight: 400;
-  transition: all 0.15s ease;
+  /* Explicit properties for smooth-but-snappy transitions */
+  transition: background 0.18s ease, color 0.18s ease;
   text-align: left;
+  white-space: nowrap; /* prevent any text from wrapping onto a second line */
 }
 
 .artistic-option:hover, .model-option:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-main);
+  /* Slightly brighter faint highlight — clearly visible but not harsh */
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
 }
 
+/* Active item: full brightness — highest contrast in the menu */
 .artistic-option.active, .model-option.active {
-  color: var(--text-main);
+  color: #ffffff;
   font-weight: 500;
 }
 
@@ -405,35 +423,78 @@ body {
 
 .generate-btn {
   position: relative;
-  background: transparent;
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
-  padding: 0.6rem 1.2rem;
+  /* Filled dark-red gradient — gives the CTA real visual weight */
+  background: linear-gradient(135deg, rgba(180, 30, 45, 0.75) 0%, rgba(220, 50, 60, 0.55) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 71, 87, 0.5);
+  padding: 0.6rem 1.4rem;
   border-radius: 20px;
   font-size: 0.9rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
   cursor: pointer;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 100px;
+  /* Soft red glow at rest */
+  box-shadow: 0 2px 12px rgba(255, 71, 87, 0.2);
 }
 
 .generate-btn:hover:not(:disabled) {
-  background: var(--accent-glow);
-  box-shadow: 0 0 15px var(--accent-glow);
+  background: linear-gradient(135deg, rgba(210, 40, 55, 0.9) 0%, rgba(255, 71, 87, 0.7) 100%);
+  border-color: rgba(255, 71, 87, 0.8);
+  /* Lift + stronger glow on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(255, 71, 87, 0.35);
 }
 
 .generate-btn:active:not(:disabled) {
-  transform: scale(0.95);
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.2);
 }
 
 .generate-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+}
+
+/* ─── Focus-visible: brand-aligned keyboard navigation rings ─── */
+*:focus { outline: none; }
+
+*:focus-visible {
+  outline: 2px solid rgba(255, 71, 87, 0.7);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Pill buttons get a softer oval ring */
+.artistic-dropdown-trigger:focus-visible,
+.model-dropdown-trigger:focus-visible,
+.generate-btn:focus-visible {
+  outline: 2px solid rgba(255, 71, 87, 0.7);
+  outline-offset: 3px;
+  border-radius: 20px;
+}
+
+/* Textarea: no focus indicator — fully clean */
+.prompt-input:focus,
+.prompt-input:focus-visible,
+.prompt-input:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Icon buttons: crisp circular ring */
+.icon-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .shortcut-hint {
