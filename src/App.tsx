@@ -1,11 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
-import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather } from 'lucide-react'
+import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, Cpu, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown } from 'lucide-react'
 import './App.css'
-import { enhancePrompt, extendPrompt, type EnhancementConfig } from './lib/promptEngine'
+import { enhancePrompt, extendPrompt, AVAILABLE_MODELS, type EnhancementConfig, type ModelDefinition } from './lib/promptEngine'
 
 const tones = ['Professional', 'Casual', 'Friendly', 'Technical', 'Creative', 'Academic']
 const roles = ['Expert Assistant', 'Software Developer', 'Letterboxd Reviewer', 'Creative Writer', 'Teacher', 'Consultant']
 const formats = ['Structured Markdown', 'JSON', 'Bullet Points', 'Step by Step', 'Code Block']
+
+interface SavedPrompt {
+  id: string;
+  rawPrompt: string;
+  enhancedPrompt: string;
+  explanation: string;
+  model: ModelDefinition;
+  timestamp: number;
+}
 
 function App() {
   const [rawPrompt, setRawPrompt] = useState('')
@@ -19,6 +28,12 @@ function App() {
   const [extendInput, setExtendInput] = useState('')
   const [isExtendLoading, setIsExtendLoading] = useState(false)
 
+  const [selectedModel, setSelectedModel] = useState<ModelDefinition>(AVAILABLE_MODELS[2]) // Default to Devstral
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
+
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([])
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
     role: 'Expert Assistant',
@@ -28,6 +43,35 @@ function App() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resultsRef = useRef<HTMLElement>(null)
   const editAreaRef = useRef<HTMLTextAreaElement>(null)
+  const modelDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Load saved prompts from local storage
+  useEffect(() => {
+    const saved = localStorage.getItem('pome_saved_prompts')
+    if (saved) {
+      try {
+        setSavedPrompts(JSON.parse(saved))
+      } catch (e) {
+        console.error('Failed to parse saved prompts', e)
+      }
+    }
+  }, [])
+
+  // Save to local storage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('pome_saved_prompts', JSON.stringify(savedPrompts))
+  }, [savedPrompts])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
+        setIsModelDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -53,8 +97,6 @@ function App() {
       const scrollToResults = () => {
         if (resultsRef.current) {
           const rect = resultsRef.current.getBoundingClientRect();
-          
-          // Only scroll if the element has actually been laid out (height > 0)
           if (rect.height > 0 || attempts > 5) {
             const absoluteTop = rect.top + window.scrollY;
             window.scrollTo({
@@ -64,15 +106,12 @@ function App() {
             return;
           }
         }
-        
-        // If element isn't ready or laid out yet, try again shortly
         if (attempts < 10) {
           attempts++;
           requestAnimationFrame(() => setTimeout(scrollToResults, 50));
         }
       };
 
-      // Start the scrolling attempt process
       requestAnimationFrame(() => setTimeout(scrollToResults, 50));
     }
   }, [enhancedPrompt, isLoading])
@@ -90,7 +129,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isLoading, rawPrompt, config])
+  }, [isLoading, rawPrompt, config, selectedModel])
 
   const handleEnhance = async () => {
     if (!rawPrompt.trim()) {
@@ -106,7 +145,7 @@ function App() {
     setIsExtending(false)
 
     try {
-      const result = await enhancePrompt(rawPrompt, config)
+      const result = await enhancePrompt(rawPrompt, config, selectedModel)
       setEnhancedPrompt(result.enhancedPrompt)
       setExplanation(result.explanation)
     } catch (err) {
@@ -158,7 +197,7 @@ function App() {
     setError('')
     
     try {
-      const result = await extendPrompt(enhancedPrompt, extendInput, config)
+      const result = await extendPrompt(enhancedPrompt, extendInput, config, selectedModel)
       setEnhancedPrompt(result.enhancedPrompt)
       setExplanation(result.explanation)
       setExtendInput('')
@@ -169,6 +208,37 @@ function App() {
       setIsExtendLoading(false)
     }
   }
+
+  const saveCurrentPrompt = () => {
+    if (!enhancedPrompt) return;
+    
+    const newSaved: SavedPrompt = {
+      id: Date.now().toString(),
+      rawPrompt,
+      enhancedPrompt,
+      explanation,
+      model: selectedModel,
+      timestamp: Date.now()
+    }
+    
+    setSavedPrompts([newSaved, ...savedPrompts])
+  }
+
+  const loadSavedPrompt = (saved: SavedPrompt) => {
+    setRawPrompt(saved.rawPrompt)
+    setEnhancedPrompt(saved.enhancedPrompt)
+    setExplanation(saved.explanation)
+    setSelectedModel(saved.model)
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const deleteSavedPrompt = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSavedPrompts(savedPrompts.filter(p => p.id !== id))
+  }
+
+  const isCurrentPromptSaved = savedPrompts.some(p => p.enhancedPrompt === enhancedPrompt)
 
   const PillSelector = ({ 
     label, 
@@ -205,10 +275,55 @@ function App() {
       <header className="brand-header">
         <h1 className="logo">Pome.</h1>
         <p className="subtitle">Distill your raw thoughts into powerful AI prompts.</p>
+        
+        <button 
+          className="history-toggle" 
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+        >
+          <Clock size={16} /> 
+          {savedPrompts.length} Saved Prompts
+        </button>
       </header>
 
       <main className="main-content">
         <section className="composer-section">
+          <div className="composer-header">
+            <div className="model-dropdown-container" ref={modelDropdownRef}>
+              <button 
+                className="model-dropdown-trigger" 
+                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+              >
+                <div className="model-trigger-content">
+                  <Cpu size={16} className="model-icon" />
+                  <span className="model-name">{selectedModel.label}</span>
+                  <span className={`model-badge ${selectedModel.provider}`}>{selectedModel.badge}</span>
+                </div>
+                <ChevronDown size={16} className={`chevron ${isModelDropdownOpen ? 'open' : ''}`} />
+              </button>
+              
+              {isModelDropdownOpen && (
+                <div className="model-dropdown-menu">
+                  {AVAILABLE_MODELS.map(model => (
+                    <button
+                      key={model.id}
+                      className={`model-option ${selectedModel.id === model.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedModel(model)
+                        setIsModelDropdownOpen(false)
+                      }}
+                    >
+                      <div className="model-option-header">
+                        <span className="model-option-name">{model.label}</span>
+                        <span className={`model-badge ${model.provider}`}>{model.badge}</span>
+                      </div>
+                      <span className="model-option-desc">{model.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="editor-wrapper">
             <textarea
               ref={textareaRef}
@@ -240,8 +355,14 @@ function App() {
             />
           </div>
 
+          {error && (
+            <div className="error-container">
+              <span className="error-message">{error}</span>
+            </div>
+          )}
+
           <div className="action-row">
-            {error && <span className="error-message">{error}</span>}
+            <span className="shortcut-hint">Ctrl + Enter</span>
             <button
               className="generate-btn"
               onClick={handleEnhance}
@@ -249,11 +370,14 @@ function App() {
             >
               {isLoading ? (
                 <>
-                  <Feather className="feather-icon" size={16} strokeWidth={1} />
+                  <Feather className="feather-icon" size={16} strokeWidth={1.5} />
                   <span className="btn-text weaving-text">Rising</span>
                 </>
               ) : (
-                <span className="btn-text">Enhance</span>
+                <>
+                  <Sparkles size={16} strokeWidth={1.5} style={{ marginRight: '8px' }} />
+                  <span className="btn-text">Enhance</span>
+                </>
               )}
             </button>
           </div>
@@ -265,6 +389,14 @@ function App() {
               <div className="card-header">
                 <h3>The Prompt</h3>
                 <div className="header-actions">
+                  <button 
+                    className={`icon-btn ${isCurrentPromptSaved ? 'saved' : ''}`} 
+                    onClick={saveCurrentPrompt} 
+                    title={isCurrentPromptSaved ? "Saved to History" : "Save this prompt"}
+                    disabled={isCurrentPromptSaved}
+                  >
+                    {isCurrentPromptSaved ? <BookmarkCheck size={18} strokeWidth={1.75} /> : <BookmarkPlus size={18} strokeWidth={1.75} />}
+                  </button>
                   <button className={`icon-btn ${isExtending ? 'active' : ''}`} onClick={() => setIsExtending(!isExtending)} title="Add more details to this prompt">
                     {isExtending ? <X size={18} strokeWidth={1.75} /> : <Wand2 size={18} strokeWidth={1.75} />}
                   </button>
@@ -329,7 +461,7 @@ function App() {
             {explanation && (
               <div className="result-card explanation">
                 <div className="card-header">
-                  <h3>Behind the scenes</h3>
+                  <h3>Behind the scenes ({selectedModel.label})</h3>
                 </div>
                 <div className="card-body">
                   <p className="explanation-text">{explanation}</p>
@@ -339,6 +471,43 @@ function App() {
           </section>
         )}
       </main>
+
+      {/* History Sidebar */}
+      <div className={`history-sidebar ${isHistoryOpen ? 'open' : ''}`}>
+        <div className="history-sidebar-header">
+          <h2>Saved Prompts</h2>
+          <button className="icon-btn" onClick={() => setIsHistoryOpen(false)}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="history-list">
+          {savedPrompts.length === 0 ? (
+            <div className="empty-history">
+              <BookmarkPlus size={32} opacity={0.5} />
+              <p>No saved prompts yet.</p>
+              <span>Save a generated prompt to compare models and keep a history.</span>
+            </div>
+          ) : (
+            savedPrompts.map(saved => (
+              <div key={saved.id} className="history-item" onClick={() => loadSavedPrompt(saved)}>
+                <div className="history-item-header">
+                  <span className={`model-badge small ${saved.model.provider}`}>{saved.model.label}</span>
+                  <span className="history-time">
+                    {new Date(saved.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <p className="history-raw-preview">{saved.rawPrompt}</p>
+                <div className="history-actions">
+                  <button className="history-delete" onClick={(e) => deleteSavedPrompt(saved.id, e)}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      {isHistoryOpen && <div className="history-overlay" onClick={() => setIsHistoryOpen(false)} />}
     </div>
   )
 }

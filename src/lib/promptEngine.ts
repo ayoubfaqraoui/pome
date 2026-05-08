@@ -1,5 +1,4 @@
 
-
 export interface EnhancementConfig {
   tone?: string;
   role?: string;
@@ -11,10 +10,187 @@ export interface EnhancementResult {
   explanation: string;
 }
 
-export async function enhancePrompt(rawPrompt: string, config: EnhancementConfig = {}): Promise<EnhancementResult> {
-  const { tone = "professional", role = "expert assistant", format = "structured markdown" } = config;
+export type ModelProvider = 'nvidia' | 'gemini';
 
-  const systemInstruction = `You are "Pome", an elite, intuitive Prompt Engineer. Your core objective is to deeply understand the true intention behind the user's raw, vague, or fragmented idea, and transform it into a high-performance LLM prompt.
+export interface ModelDefinition {
+  id: string;
+  label: string;
+  description: string;
+  provider: ModelProvider;
+  apiModel: string;
+  badge?: string;
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  reasoning_budget?: number;
+  chat_template_kwargs?: Record<string, unknown>;
+}
+
+export const AVAILABLE_MODELS: ModelDefinition[] = [
+  {
+    id: 'gpt-oss-20b',
+    label: 'GPT OSS 20B',
+    description: 'OpenAI open-source 20B model via NVIDIA NIM',
+    provider: 'nvidia',
+    apiModel: 'openai/gpt-oss-20b',
+    badge: 'Fast',
+    temperature: 1,
+    top_p: 1,
+    max_tokens: 4096,
+  },
+  {
+    id: 'nemotron-nano-30b',
+    label: 'Nemotron Nano 30B',
+    description: 'NVIDIA Nemotron reasoning model with extended thinking',
+    provider: 'nvidia',
+    apiModel: 'nvidia/nemotron-3-nano-30b-a3b',
+    badge: 'Thinking',
+    temperature: 1,
+    top_p: 1,
+    max_tokens: 16384,
+    reasoning_budget: 16384,
+    chat_template_kwargs: { enable_thinking: true },
+  },
+  {
+    id: 'devstral-123b',
+    label: 'Devstral 123B',
+    description: 'Mistral DevStral 2 — elite coding & instruction model',
+    provider: 'nvidia',
+    apiModel: 'mistralai/devstral-2-123b-instruct-2512',
+    badge: 'Powerful',
+    temperature: 0.15,
+    top_p: 0.95,
+    max_tokens: 8192,
+  },
+  {
+    id: 'gemini-2-flash',
+    label: 'Gemini 2.0 Flash',
+    description: 'Google Gemini 2.0 Flash — fast and capable fallback',
+    provider: 'gemini',
+    apiModel: 'gemini-2.0-flash',
+    badge: 'Fallback',
+    temperature: 0.7,
+    max_tokens: 4096,
+  },
+];
+
+// ─── NVIDIA NIM call ────────────────────────────────────────────────────────
+
+const NVIDIA_KEYS = [
+  import.meta.env.VITE_NVIDIA_API_KEY_1,
+  import.meta.env.VITE_NVIDIA_API_KEY_2,
+  import.meta.env.VITE_NVIDIA_API_KEY_3,
+].filter(Boolean);
+
+async function callNvidiaAPI(
+  model: ModelDefinition,
+  messages: { role: string; content: string }[]
+): Promise<string> {
+  let lastError: Error | null = null;
+
+  for (const apiKey of NVIDIA_KEYS) {
+    const bodyParams: Record<string, unknown> = {
+      model: model.apiModel,
+      messages,
+      temperature: model.temperature ?? 0.7,
+      top_p: model.top_p ?? 1,
+      max_tokens: model.max_tokens ?? 4096,
+      stream: false,
+    };
+    if (model.reasoning_budget) bodyParams.reasoning_budget = model.reasoning_budget;
+    if (model.chat_template_kwargs) bodyParams.chat_template_kwargs = model.chat_template_kwargs;
+
+    try {
+      const response = await fetch('/nvidia-api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(bodyParams),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP Error ${response.status}: ${text}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || '{}';
+    } catch (err: any) {
+      lastError = err;
+      // If it's a degraded/server error, try the next key; for client errors, fail fast
+      const is5xx = err.message?.includes('HTTP Error 5') || err.message?.includes('DEGRADED');
+      const is400 = err.message?.includes('HTTP Error 400');
+      if (is400 && err.message?.includes('DEGRADED')) continue; // try next key for degraded
+      if (!is5xx && !is400) throw err; // bad model name, auth, etc. — don't retry
+    }
+  }
+
+  throw lastError ?? new Error('All NVIDIA API keys failed.');
+}
+
+// ─── Gemini API call ────────────────────────────────────────────────────────
+
+async function callGeminiAPI(
+  model: ModelDefinition,
+  systemInstruction: string,
+  userContent: string
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  if (!apiKey || apiKey.includes('placeholder')) {
+    throw new Error('Gemini API key not configured. Add VITE_GEMINI_API_KEY to your environment variables.');
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model.apiModel}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents: [{ role: 'user', parts: [{ text: userContent }] }],
+        generationConfig: {
+          temperature: model.temperature ?? 0.7,
+          maxOutputTokens: model.max_tokens ?? 4096,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Gemini HTTP Error ${response.status}: ${text}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+}
+
+// ─── Shared JSON parse helper ────────────────────────────────────────────────
+
+function parseJsonResult(raw: string): EnhancementResult {
+  const cleaned = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+  try {
+    const result = JSON.parse(cleaned);
+    return {
+      enhancedPrompt: result.enhancedPrompt || 'Failed to generate prompt.',
+      explanation: result.explanation || 'No explanation provided.',
+    };
+  } catch {
+    // If JSON parsing fails, treat the whole response as the prompt
+    return {
+      enhancedPrompt: cleaned || 'Failed to generate prompt.',
+      explanation: 'Model returned a plain response (not JSON).',
+    };
+  }
+}
+
+// ─── Build system instruction ────────────────────────────────────────────────
+
+function buildSystemInstruction(config: EnhancementConfig): string {
+  const { tone = 'professional', role = 'expert assistant', format = 'structured markdown' } = config;
+  return `You are "Pome", an elite, intuitive Prompt Engineer. Your core objective is to deeply understand the true intention behind the user's raw, vague, or fragmented idea, and transform it into a high-performance LLM prompt.
 
 Key Principles & Rules:
 1. INTENT PRESERVATION (CRITICAL): Never change the user's core goal. 
@@ -36,56 +212,11 @@ You must output ONLY a valid JSON object with exactly two keys:
 - "explanation": A brief explanation of how you improved their prompt without changing their original goal.
 
 Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
-
-  try {
-    const apiKey = import.meta.env.VITE_NVIDIA_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("Missing NVIDIA API Key. Please check your Vercel Environment Variables.");
-    }
-
-    const response = await fetch("/nvidia-api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "mistralai/devstral-2-123b-instruct-2512",
-        messages: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: `Raw Prompt: "${rawPrompt}"` }
-        ],
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`HTTP Error ${response.status}: ${text}`);
-    }
-
-    const data = await response.json();
-    let responseText = data.choices?.[0]?.message?.content || "{}";
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    
-    const result = JSON.parse(responseText);
-    
-    return {
-      enhancedPrompt: result.enhancedPrompt || "Failed to generate prompt.",
-      explanation: result.explanation || "No explanation provided."
-    };
-  } catch (error: any) {
-    console.error("NIM API Error details:", error);
-    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-    throw new Error(`AI Error: ${errorMessage}`);
-  }
 }
 
-export async function extendPrompt(originalPrompt: string, extensionInstruction: string, config: EnhancementConfig = {}): Promise<EnhancementResult> {
-  const { tone = "professional", role = "expert assistant", format = "structured markdown" } = config;
-
-  const systemInstruction = `You are "Pome", an elite, intuitive Prompt Engineer. Your objective is to EXTEND and IMPROVE an existing prompt based on new instructions from the user.
+function buildExtendSystemInstruction(config: EnhancementConfig): string {
+  const { tone = 'professional', role = 'expert assistant', format = 'structured markdown' } = config;
+  return `You are "Pome", an elite, intuitive Prompt Engineer. Your objective is to EXTEND and IMPROVE an existing prompt based on new instructions from the user.
 
 Key Principles & Rules:
 1. PRESERVE THE CORE: Keep the core intent, context, and structure of the original prompt intact. Do not rewrite it completely unless necessary to integrate the new instructions smoothly.
@@ -100,40 +231,58 @@ You must output ONLY a valid JSON object with exactly two keys:
 - "explanation": A brief explanation of how you integrated the new details.
 
 Ensure the JSON is strictly valid. No markdown wrapping the JSON.`;
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export async function enhancePrompt(
+  rawPrompt: string,
+  config: EnhancementConfig = {},
+  model: ModelDefinition = AVAILABLE_MODELS[2]
+): Promise<EnhancementResult> {
+  const systemInstruction = buildSystemInstruction(config);
+  const userContent = `Raw Prompt: "${rawPrompt}"`;
 
   try {
-    const apiKey = import.meta.env.VITE_NVIDIA_API_KEY?.trim();
-    if (!apiKey) throw new Error("Missing NVIDIA API Key.");
-
-    const response = await fetch("/nvidia-api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "mistralai/devstral-2-123b-instruct-2512",
-        messages: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: `Original Prompt:\n"""\n${originalPrompt}\n"""\n\nExtension Request:\n"${extensionInstruction}"` }
-        ],
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
-    });
-
-    if (!response.ok) throw new Error(`HTTP Error ${response.status}: ${await response.text()}`);
-
-    const data = await response.json();
-    let responseText = data.choices?.[0]?.message?.content || "{}";
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const result = JSON.parse(responseText);
-    
-    return {
-      enhancedPrompt: result.enhancedPrompt || "Failed to extend prompt.",
-      explanation: result.explanation || "No explanation provided."
-    };
+    let rawResponse: string;
+    if (model.provider === 'gemini') {
+      rawResponse = await callGeminiAPI(model, systemInstruction, userContent);
+    } else {
+      rawResponse = await callNvidiaAPI(model, [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userContent },
+      ]);
+    }
+    return parseJsonResult(rawResponse);
   } catch (error: any) {
-    throw new Error(`AI Error: ${error.message}`);
+    console.error('Prompt Engine Error:', error);
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
+    throw new Error(`AI Error: ${msg}`);
+  }
+}
+
+export async function extendPrompt(
+  originalPrompt: string,
+  extensionInstruction: string,
+  config: EnhancementConfig = {},
+  model: ModelDefinition = AVAILABLE_MODELS[2]
+): Promise<EnhancementResult> {
+  const systemInstruction = buildExtendSystemInstruction(config);
+  const userContent = `Original Prompt:\n"""\n${originalPrompt}\n"""\n\nExtension Request:\n"${extensionInstruction}"`;
+
+  try {
+    let rawResponse: string;
+    if (model.provider === 'gemini') {
+      rawResponse = await callGeminiAPI(model, systemInstruction, userContent);
+    } else {
+      rawResponse = await callNvidiaAPI(model, [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userContent },
+      ]);
+    }
+    return parseJsonResult(rawResponse);
+  } catch (error: any) {
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
+    throw new Error(`AI Error: ${msg}`);
   }
 }
