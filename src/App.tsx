@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown, ChevronUp, Settings, Key, Menu } from 'lucide-react'
+import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown, Key, Menu } from 'lucide-react'
 import './App.css'
 import { enhancePrompt, extendPrompt, AVAILABLE_MODELS, type EnhancementConfig, type ModelDefinition } from './lib/promptEngine'
 
@@ -81,7 +81,6 @@ function App() {
 
   const saveApiKeys = () => {
     localStorage.setItem('pome_api_keys', JSON.stringify(apiKeys))
-    setIsSettingsOpen(false)
   }
 
   // Close dropdown when clicking outside
