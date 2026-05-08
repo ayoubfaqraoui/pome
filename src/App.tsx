@@ -4,8 +4,8 @@ import './App.css'
 import { enhancePrompt, extendPrompt, AVAILABLE_MODELS, type EnhancementConfig, type ModelDefinition } from './lib/promptEngine'
 
 const tones = ['Professional', 'Casual', 'Friendly', 'Technical', 'Creative', 'Academic']
-const roles = ['Expert Assistant', 'Software Developer', 'Letterboxd Reviewer', 'Creative Writer', 'Teacher', 'Consultant']
-const formats = ['Structured Markdown', 'JSON', 'Bullet Points', 'Step by Step', 'Code Block']
+const roles = ['Expert Assistant', 'Software Developer', 'UI/UX Designer', 'Letterboxd Reviewer', 'Creative Writer', 'Teacher', 'Consultant']
+const formats = ['Markdown', 'JSON', 'Bullet Points', 'Step by Step', 'Code Block']
 
 interface SavedPrompt {
   id: string;
@@ -14,6 +14,52 @@ interface SavedPrompt {
   explanation: string;
   model: ModelDefinition;
   timestamp: number;
+}
+
+function ArtisticDropdown({ label, value, options, onChange }: { label: string, value: string, options: string[], onChange: (val: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="artistic-dropdown-container" ref={dropdownRef}>
+      <button 
+        className={`artistic-dropdown-trigger ${isOpen ? 'active' : ''} ${value ? 'has-value' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        title={label}
+      >
+        {value && <span className="artistic-value">{value}</span>}
+        <ChevronDown size={14} className="chevron" />
+      </button>
+      
+      {isOpen && (
+        <div className="artistic-dropdown-menu">
+          {options.map(opt => (
+            <button
+              key={opt}
+              className={`artistic-option ${value === opt ? 'active' : ''}`}
+              onClick={() => {
+                onChange(opt);
+                setIsOpen(false);
+              }}
+            >
+              <span className="artistic-option-name">{opt}</span>
+              {value === opt && <Check size={14} className="check-icon" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function App() {
@@ -28,14 +74,14 @@ function App() {
   const [extendInput, setExtendInput] = useState('')
   const [isExtendLoading, setIsExtendLoading] = useState(false)
 
-  const [selectedModel, setSelectedModel] = useState<ModelDefinition>(AVAILABLE_MODELS[2]) // Default to Devstral
+  const [selectedModel, setSelectedModel] = useState<ModelDefinition>(AVAILABLE_MODELS[0]) // Default to GPT OSS 20B
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
 
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([])
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<'history' | 'keys'>('history')
-  const [selectedKeyModel, setSelectedKeyModel] = useState<string>(AVAILABLE_MODELS[2].id)
+  const [selectedKeyModel, setSelectedKeyModel] = useState<string>(AVAILABLE_MODELS[0].id)
   
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [isKeySaved, setIsKeySaved] = useState(false)
@@ -43,7 +89,7 @@ function App() {
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
     role: 'Expert Assistant',
-    format: 'Structured Markdown',
+    format: 'Markdown',
   })
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -305,81 +351,82 @@ function App() {
             />
             
             <div className="input-footer">
-              <div className="model-dropdown-container" ref={modelDropdownRef}>
-                <button 
-                  className={`model-dropdown-trigger ${isModelDropdownOpen ? 'active' : ''}`} 
-                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+              <div className="input-footer-left">
+                <div className="model-dropdown-container" ref={modelDropdownRef}>
+                  <button 
+                    className={`model-dropdown-trigger ${isModelDropdownOpen ? 'active' : ''}`} 
+                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                    title="Model"
+                  >
+                    <span className="model-name">{selectedModel.label}</span>
+                    <ChevronDown size={14} className="chevron" />
+                  </button>
+                  
+                  {isModelDropdownOpen && (
+                    <div className="model-dropdown-menu">
+                      {AVAILABLE_MODELS.map(model => (
+                        <button
+                          key={model.id}
+                          className={`model-option ${selectedModel.id === model.id ? 'active' : ''}`}
+                          onClick={() => {
+                            setSelectedModel(model)
+                            setIsModelDropdownOpen(false)
+                          }}
+                        >
+                          <span className="model-option-name">{model.label}</span>
+                          {selectedModel.id === model.id && <Check size={14} className="check-icon" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="config-dropdowns">
+                  <ArtisticDropdown 
+                    label="Vibe" 
+                    value={config.tone!} 
+                    options={tones} 
+                    onChange={(val) => setConfig({ ...config, tone: val })} 
+                  />
+                  <ArtisticDropdown 
+                    label="Persona" 
+                    value={config.role!} 
+                    options={roles} 
+                    onChange={(val) => setConfig({ ...config, role: val })} 
+                  />
+                  <ArtisticDropdown 
+                    label="Format" 
+                    value={config.format!} 
+                    options={formats} 
+                    onChange={(val) => setConfig({ ...config, format: val })} 
+                  />
+                </div>
+              </div>
+
+              <div className="input-footer-right">
+                <button
+                  className="generate-btn"
+                  onClick={handleEnhance}
+                  disabled={isLoading || !rawPrompt.trim()}
                 >
-                  <span className="model-name">{selectedModel.label}</span>
-                  <ChevronDown size={14} className="chevron" />
+                  {isLoading ? (
+                    <>
+                      <Feather className="feather-icon" size={16} strokeWidth={1.5} />
+                      <span className="btn-text weaving-text">Rising</span>
+                    </>
+                  ) : (
+                    <span className="btn-text">Enhance</span>
+                  )}
                 </button>
-                
-                {isModelDropdownOpen && (
-                  <div className="model-dropdown-menu">
-                    <div className="model-dropdown-label">Models</div>
-                    {AVAILABLE_MODELS.map(model => (
-                      <button
-                        key={model.id}
-                        className={`model-option ${selectedModel.id === model.id ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedModel(model)
-                          setIsModelDropdownOpen(false)
-                        }}
-                      >
-                        <span className="model-option-name">{model.label}</span>
-                        {selectedModel.id === model.id && <Check size={14} className="check-icon" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
-          </div>
 
-          <div className="controls-grid">
-            <PillSelector 
-              label="Vibe" 
-              options={tones} 
-              value={config.tone!} 
-              onChange={(t) => setConfig({ ...config, tone: t })} 
-            />
-            <PillSelector 
-              label="Persona" 
-              options={roles} 
-              value={config.role!} 
-              onChange={(r) => setConfig({ ...config, role: r })} 
-            />
-            <PillSelector 
-              label="Format" 
-              options={formats} 
-              value={config.format!} 
-              onChange={(f) => setConfig({ ...config, format: f })} 
-            />
-          </div>
-
-          {error && (
-            <div className="error-container">
-              <span className="error-message">{error}</span>
-            </div>
-          )}
-
-          <div className="action-row">
-            <div className="enhance-actions">
-              <button
-                className="generate-btn"
-                onClick={handleEnhance}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Feather className="feather-icon" size={16} strokeWidth={1.5} />
-                    <span className="btn-text weaving-text">Rising</span>
-                  </>
-                ) : (
-                  <span className="btn-text">Enhance</span>
-                )}
-              </button>
-            </div>
+            {error && (
+              <div className="error-toast">
+                <span>{error}</span>
+                <button className="error-dismiss" onClick={() => setError('')}><X size={14} /></button>
+              </div>
+            )}
           </div>
         </section>
 

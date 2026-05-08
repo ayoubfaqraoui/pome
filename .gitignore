@@ -33,3 +33,17 @@ dist-ssr
 
 # Sensitive local files
 models.md
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Vercel
+.vercel
+
+# Coverage & testing
+coverage
+
+# Gemini / Antigravity local data
+.gemini
+.antigravityignore
