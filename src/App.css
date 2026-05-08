@@ -97,13 +97,13 @@ body {
 }
 
 .header-actions-container {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  position: fixed;
+  right: 2rem;
+  top: 2rem;
   display: flex;
   gap: 1rem;
   align-items: center;
+  z-index: 100;
 }
 
 .history-toggle {

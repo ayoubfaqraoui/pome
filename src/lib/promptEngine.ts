@@ -73,6 +73,14 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
   },
 ];
 
+function getEnvKey(envName?: string): string | undefined {
+  if (envName === 'VITE_NVIDIA_API_KEY_1') return import.meta.env.VITE_NVIDIA_API_KEY_1;
+  if (envName === 'VITE_NVIDIA_API_KEY_2') return import.meta.env.VITE_NVIDIA_API_KEY_2;
+  if (envName === 'VITE_NVIDIA_API_KEY_3') return import.meta.env.VITE_NVIDIA_API_KEY_3;
+  if (envName === 'VITE_GEMINI_API_KEY') return import.meta.env.VITE_GEMINI_API_KEY;
+  return undefined;
+}
+
 function getApiKey(model: ModelDefinition): string {
   // First, check local storage for custom keys
   try {
@@ -86,8 +94,7 @@ function getApiKey(model: ModelDefinition): string {
 
   // Fallback to environment variables
   if (model.apiKeyEnvName) {
-    // @ts-ignore
-    const envKey = import.meta.env[model.apiKeyEnvName] as string;
+    const envKey = getEnvKey(model.apiKeyEnvName);
     if (envKey && !envKey.includes('placeholder')) {
       return envKey;
     }

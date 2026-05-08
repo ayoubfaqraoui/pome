@@ -38,6 +38,7 @@ function App() {
   const [selectedKeyModel, setSelectedKeyModel] = useState<string>(AVAILABLE_MODELS[2].id)
   
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
+  const [isKeySaved, setIsKeySaved] = useState(false)
 
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
@@ -81,6 +82,8 @@ function App() {
 
   const saveApiKeys = () => {
     localStorage.setItem('pome_api_keys', JSON.stringify(apiKeys))
+    setIsKeySaved(true)
+    setTimeout(() => setIsKeySaved(false), 2000)
   }
 
   // Close dropdown when clicking outside
@@ -285,15 +288,15 @@ function App() {
       <div className="background-glow glow-1"></div>
       <div className="background-glow glow-2"></div>
 
+      <div className="header-actions-container">
+        <button className="icon-btn menu-toggle" onClick={() => setIsSidebarOpen(true)}>
+          <Menu size={24} color="var(--text-main)" />
+        </button>
+      </div>
+
       <header className="brand-header">
         <h1 className="logo">Pome.</h1>
         <p className="subtitle">Distill your raw thoughts into powerful AI prompts.</p>
-        
-        <div className="header-actions-container">
-          <button className="icon-btn menu-toggle" onClick={() => setIsSidebarOpen(true)}>
-            <Menu size={24} color="var(--text-main)" />
-          </button>
-        </div>
       </header>
 
       <main className="main-content">
@@ -561,8 +564,8 @@ function App() {
               <div style={{marginTop: 'auto', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end'}}>
                 <button className="generate-btn" onClick={() => {
                   saveApiKeys();
-                }}>
-                  Save Key
+                }} style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                  {isKeySaved ? <><Check size={16} /> Saved!</> : 'Save Key'}
                 </button>
               </div>
             </div>
