@@ -97,13 +97,7 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Auto-resize edit textarea
-  useEffect(() => {
-    if (isEditing && editAreaRef.current) {
-      editAreaRef.current.style.height = 'auto'
-      editAreaRef.current.style.height = `${Math.max(editAreaRef.current.scrollHeight, 200)}px`
-    }
-  }, [enhancedPrompt, isEditing])
+
 
   // Scroll to results when they appear
   useEffect(() => {
