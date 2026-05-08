@@ -96,11 +96,17 @@ body {
   letter-spacing: 0.02em;
 }
 
-.history-toggle {
+.header-actions-container {
   position: absolute;
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.history-toggle {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
@@ -142,7 +148,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 150px;
+  min-height: 250px;
   margin-bottom: 1.5rem;
 }
 
@@ -155,9 +161,11 @@ body {
   font-family: var(--font-sans);
   font-size: 1.125rem;
   line-height: 1.6;
-  resize: none;
+  resize: vertical;
+  min-height: 200px;
+  max-height: 60vh;
   outline: none;
-  overflow: hidden;
+  overflow-y: auto;
   margin-bottom: 3rem; /* Space for the input footer */
 }
 
@@ -719,4 +727,125 @@ body {
 
 .history-delete:hover {
   opacity: 1;
+}
+
+/* Settings Modal */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.settings-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 500px;
+  background: #121214; /* Deep dark glass */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpMenu 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.settings-title h2 {
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.settings-icon {
+  color: var(--text-muted);
+}
+
+.settings-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.keys-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.key-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.key-input-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.key-input-group input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.key-input-group input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+.key-input-group input::placeholder {
+  color: #555;
+}
+
+.settings-footer {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.settings-save-btn {
+  padding: 0.6rem 1.5rem;
 }

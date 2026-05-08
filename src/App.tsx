@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown, ChevronUp, Settings, Key, Menu } from 'lucide-react'
 import './App.css'
 import { enhancePrompt, extendPrompt, AVAILABLE_MODELS, type EnhancementConfig, type ModelDefinition } from './lib/promptEngine'
 
@@ -32,7 +32,12 @@ function App() {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
 
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([])
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [sidebarTab, setSidebarTab] = useState<'history' | 'keys'>('history')
+  const [selectedKeyModel, setSelectedKeyModel] = useState<string>(AVAILABLE_MODELS[2].id)
+  
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
 
   const [config, setConfig] = useState<EnhancementConfig>({
     tone: 'Professional',
@@ -62,6 +67,23 @@ function App() {
     localStorage.setItem('pome_saved_prompts', JSON.stringify(savedPrompts))
   }, [savedPrompts])
 
+  // Load API keys
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pome_api_keys')
+      if (saved) {
+        setApiKeys(JSON.parse(saved))
+      }
+    } catch (e) {
+      console.error('Failed to parse saved API keys', e)
+    }
+  }, [])
+
+  const saveApiKeys = () => {
+    localStorage.setItem('pome_api_keys', JSON.stringify(apiKeys))
+    setIsSettingsOpen(false)
+  }
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -72,14 +94,6 @@ function App() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 120)}px`
-    }
-  }, [rawPrompt])
 
   // Auto-resize edit textarea
   useEffect(() => {
@@ -276,13 +290,11 @@ function App() {
         <h1 className="logo">Pome.</h1>
         <p className="subtitle">Distill your raw thoughts into powerful AI prompts.</p>
         
-        <button 
-          className="history-toggle" 
-          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-        >
-          <Clock size={16} strokeWidth={1.5} /> 
-          {savedPrompts.length} Saved Prompts
-        </button>
+        <div className="header-actions-container">
+          <button className="icon-btn menu-toggle" onClick={() => setIsSidebarOpen(true)}>
+            <Menu size={24} color="var(--text-main)" />
+          </button>
+        </div>
       </header>
 
       <main className="main-content">
@@ -464,42 +476,101 @@ function App() {
         )}
       </main>
 
-      {/* History Sidebar */}
-      <div className={`history-sidebar ${isHistoryOpen ? 'open' : ''}`}>
-        <div className="history-sidebar-header">
-          <h2>Saved Prompts</h2>
-          <button className="icon-btn" onClick={() => setIsHistoryOpen(false)}>
-            <X size={20} />
-          </button>
-        </div>
-        <div className="history-list">
-          {savedPrompts.length === 0 ? (
-            <div className="empty-history">
-              <BookmarkPlus size={32} opacity={0.5} />
-              <p>No saved prompts yet.</p>
-              <span>Save a generated prompt to compare models and keep a history.</span>
+      {/* Unified Sidebar */}
+      <div className={`history-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="history-sidebar-header" style={{flexDirection: 'column', alignItems: 'stretch', gap: '1rem'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div className="sidebar-tabs" style={{display: 'flex', gap: '1rem'}}>
+              <button 
+                className={`tab-btn ${sidebarTab === 'history' ? 'active' : ''}`}
+                onClick={() => setSidebarTab('history')}
+                style={{background: 'transparent', border: 'none', color: sidebarTab === 'history' ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, fontSize: '0.9rem'}}
+              >
+                <Clock size={16} /> Saved
+              </button>
+              <button 
+                className={`tab-btn ${sidebarTab === 'keys' ? 'active' : ''}`}
+                onClick={() => setSidebarTab('keys')}
+                style={{background: 'transparent', border: 'none', color: sidebarTab === 'keys' ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, fontSize: '0.9rem'}}
+              >
+                <Key size={16} /> API Keys
+              </button>
             </div>
-          ) : (
-            savedPrompts.map(saved => (
-              <div key={saved.id} className="history-item" onClick={() => loadSavedPrompt(saved)}>
-                <div className="history-item-header">
-                  <span className="history-model-name">{saved.model.label}</span>
-                  <span className="history-time">
-                    {new Date(saved.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+            <button className="icon-btn" onClick={() => setIsSidebarOpen(false)}>
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="history-list">
+          {sidebarTab === 'history' ? (
+            savedPrompts.length === 0 ? (
+              <div className="empty-history">
+                <BookmarkPlus size={32} opacity={0.5} />
+                <p>No saved prompts yet.</p>
+                <span>Save a generated prompt to compare models and keep a history.</span>
+              </div>
+            ) : (
+              savedPrompts.map(saved => (
+                <div key={saved.id} className="history-item" onClick={() => loadSavedPrompt(saved)}>
+                  <div className="history-item-header">
+                    <span className="history-model-name">{saved.model.label}</span>
+                    <span className="history-time">
+                      {new Date(saved.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="history-raw-preview">{saved.rawPrompt}</p>
+                  <div className="history-actions">
+                    <button className="history-delete" onClick={(e) => deleteSavedPrompt(saved.id, e)}>
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
                 </div>
-                <p className="history-raw-preview">{saved.rawPrompt}</p>
-                <div className="history-actions">
-                  <button className="history-delete" onClick={(e) => deleteSavedPrompt(saved.id, e)}>
-                    <Trash2 size={14} /> Delete
-                  </button>
+              ))
+            )
+          ) : (
+            <div className="keys-config-section" style={{display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%'}}>
+              <p className="settings-desc">Configure API keys per model. Keys are securely stored locally.</p>
+              
+              <div className="key-input-group">
+                <label>Target Model</label>
+                <div className="model-dropdown-container" style={{width: '100%'}}>
+                  <select 
+                    value={selectedKeyModel} 
+                    onChange={(e) => setSelectedKeyModel(e.target.value)}
+                    style={{width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)', appearance: 'none', cursor: 'pointer'}}
+                  >
+                    {AVAILABLE_MODELS.map(m => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} style={{position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none'}} />
                 </div>
               </div>
-            ))
+
+              <div className="key-input-group">
+                <label>API Key</label>
+                <input 
+                  type="password"
+                  placeholder="Paste API Key here..."
+                  value={apiKeys[selectedKeyModel] || ''}
+                  onChange={(e) => setApiKeys({...apiKeys, [selectedKeyModel]: e.target.value})}
+                  style={{width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)'}}
+                />
+              </div>
+
+              <div style={{marginTop: 'auto', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end'}}>
+                <button className="generate-btn" onClick={() => {
+                  saveApiKeys();
+                }}>
+                  Save Key
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
-      {isHistoryOpen && <div className="history-overlay" onClick={() => setIsHistoryOpen(false)} />}
+      {isSidebarOpen && <div className="history-overlay" onClick={() => setIsSidebarOpen(false)} />}
     </div>
   )
 }

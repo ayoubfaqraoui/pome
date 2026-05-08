@@ -67,10 +67,34 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
     description: 'Google Gemini 2.0 Flash',
     provider: 'gemini',
     apiModel: 'gemini-2.0-flash',
+    apiKeyEnvName: 'VITE_GEMINI_API_KEY',
     temperature: 0.7,
     max_tokens: 4096,
   },
 ];
+
+function getApiKey(model: ModelDefinition): string {
+  // First, check local storage for custom keys
+  try {
+    const localKeys = JSON.parse(localStorage.getItem('pome_api_keys') || '{}');
+    if (localKeys[model.id] && localKeys[model.id].trim() !== '') {
+      return localKeys[model.id].trim();
+    }
+  } catch (e) {
+    console.error('Failed to parse local API keys');
+  }
+
+  // Fallback to environment variables
+  if (model.apiKeyEnvName) {
+    // @ts-ignore
+    const envKey = import.meta.env[model.apiKeyEnvName] as string;
+    if (envKey && !envKey.includes('placeholder')) {
+      return envKey;
+    }
+  }
+
+  throw new Error(`API Key for ${model.label} not found. Please add it in Settings.`);
+}
 
 // ─── NVIDIA NIM call ────────────────────────────────────────────────────────
 
@@ -78,13 +102,7 @@ async function callNvidiaAPI(
   model: ModelDefinition,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  const envKey = model.apiKeyEnvName as keyof ImportMetaEnv;
-  // @ts-ignore
-  const apiKey = import.meta.env[envKey] as string;
-
-  if (!apiKey) {
-    throw new Error(`API Key for ${model.label} not found. Check ${model.apiKeyEnvName}`);
-  }
+  const apiKey = getApiKey(model);
 
   const bodyParams: Record<string, unknown> = {
     model: model.apiModel,
@@ -122,10 +140,7 @@ async function callGeminiAPI(
   systemInstruction: string,
   userContent: string
 ): Promise<string> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
-  if (!apiKey || apiKey.includes('placeholder')) {
-    throw new Error('Gemini API key not configured. Add VITE_GEMINI_API_KEY to your environment variables.');
-  }
+  const apiKey = getApiKey(model);
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model.apiModel}:generateContent?key=${apiKey}`,
