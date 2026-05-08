@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, Cpu, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown } from 'lucide-react'
+import { Wand2, Pencil, Check, Copy, Terminal, Sparkles, Download, X, Feather, BookmarkPlus, BookmarkCheck, Trash2, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import './App.css'
 import { enhancePrompt, extendPrompt, AVAILABLE_MODELS, type EnhancementConfig, type ModelDefinition } from './lib/promptEngine'
 
@@ -280,50 +280,13 @@ function App() {
           className="history-toggle" 
           onClick={() => setIsHistoryOpen(!isHistoryOpen)}
         >
-          <Clock size={16} /> 
+          <Clock size={16} strokeWidth={1.5} /> 
           {savedPrompts.length} Saved Prompts
         </button>
       </header>
 
       <main className="main-content">
         <section className="composer-section">
-          <div className="composer-header">
-            <div className="model-dropdown-container" ref={modelDropdownRef}>
-              <button 
-                className="model-dropdown-trigger" 
-                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-              >
-                <div className="model-trigger-content">
-                  <Cpu size={16} className="model-icon" />
-                  <span className="model-name">{selectedModel.label}</span>
-                  <span className={`model-badge ${selectedModel.provider}`}>{selectedModel.badge}</span>
-                </div>
-                <ChevronDown size={16} className={`chevron ${isModelDropdownOpen ? 'open' : ''}`} />
-              </button>
-              
-              {isModelDropdownOpen && (
-                <div className="model-dropdown-menu">
-                  {AVAILABLE_MODELS.map(model => (
-                    <button
-                      key={model.id}
-                      className={`model-option ${selectedModel.id === model.id ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedModel(model)
-                        setIsModelDropdownOpen(false)
-                      }}
-                    >
-                      <div className="model-option-header">
-                        <span className="model-option-name">{model.label}</span>
-                        <span className={`model-badge ${model.provider}`}>{model.badge}</span>
-                      </div>
-                      <span className="model-option-desc">{model.description}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="editor-wrapper">
             <textarea
               ref={textareaRef}
@@ -332,6 +295,37 @@ function App() {
               onChange={(e) => setRawPrompt(e.target.value)}
               placeholder="What are you trying to build, solve, or create? Just dump your brain here..."
             />
+            
+            <div className="input-footer">
+              <div className="model-dropdown-container" ref={modelDropdownRef}>
+                <button 
+                  className={`model-dropdown-trigger ${isModelDropdownOpen ? 'active' : ''}`} 
+                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                >
+                  <span className="model-name">{selectedModel.label}</span>
+                  <ChevronDown size={14} className="chevron" />
+                </button>
+                
+                {isModelDropdownOpen && (
+                  <div className="model-dropdown-menu">
+                    <div className="model-dropdown-label">Models</div>
+                    {AVAILABLE_MODELS.map(model => (
+                      <button
+                        key={model.id}
+                        className={`model-option ${selectedModel.id === model.id ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedModel(model)
+                          setIsModelDropdownOpen(false)
+                        }}
+                      >
+                        <span className="model-option-name">{model.label}</span>
+                        {selectedModel.id === model.id && <Check size={14} className="check-icon" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="controls-grid">
@@ -362,24 +356,22 @@ function App() {
           )}
 
           <div className="action-row">
-            <span className="shortcut-hint">Ctrl + Enter</span>
-            <button
-              className="generate-btn"
-              onClick={handleEnhance}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Feather className="feather-icon" size={16} strokeWidth={1.5} />
-                  <span className="btn-text weaving-text">Rising</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16} strokeWidth={1.5} style={{ marginRight: '8px' }} />
+            <div className="enhance-actions">
+              <button
+                className="generate-btn"
+                onClick={handleEnhance}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Feather className="feather-icon" size={16} strokeWidth={1.5} />
+                    <span className="btn-text weaving-text">Rising</span>
+                  </>
+                ) : (
                   <span className="btn-text">Enhance</span>
-                </>
-              )}
-            </button>
+                )}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -491,7 +483,7 @@ function App() {
             savedPrompts.map(saved => (
               <div key={saved.id} className="history-item" onClick={() => loadSavedPrompt(saved)}>
                 <div className="history-item-header">
-                  <span className={`model-badge small ${saved.model.provider}`}>{saved.model.label}</span>
+                  <span className="history-model-name">{saved.model.label}</span>
                   <span className="history-time">
                     {new Date(saved.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>

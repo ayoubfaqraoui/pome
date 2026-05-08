@@ -1,4 +1,3 @@
-
 export interface EnhancementConfig {
   tone?: string;
   role?: string;
@@ -18,7 +17,7 @@ export interface ModelDefinition {
   description: string;
   provider: ModelProvider;
   apiModel: string;
-  badge?: string;
+  apiKeyEnvName?: string;
   temperature?: number;
   top_p?: number;
   max_tokens?: number;
@@ -30,10 +29,10 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
   {
     id: 'gpt-oss-20b',
     label: 'GPT OSS 20B',
-    description: 'OpenAI open-source 20B model via NVIDIA NIM',
+    description: 'OpenAI open-source 20B model',
     provider: 'nvidia',
     apiModel: 'openai/gpt-oss-20b',
-    badge: 'Fast',
+    apiKeyEnvName: 'VITE_NVIDIA_API_KEY_1',
     temperature: 1,
     top_p: 1,
     max_tokens: 4096,
@@ -41,10 +40,10 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
   {
     id: 'nemotron-nano-30b',
     label: 'Nemotron Nano 30B',
-    description: 'NVIDIA Nemotron reasoning model with extended thinking',
+    description: 'NVIDIA Nemotron reasoning model',
     provider: 'nvidia',
     apiModel: 'nvidia/nemotron-3-nano-30b-a3b',
-    badge: 'Thinking',
+    apiKeyEnvName: 'VITE_NVIDIA_API_KEY_2',
     temperature: 1,
     top_p: 1,
     max_tokens: 16384,
@@ -54,10 +53,10 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
   {
     id: 'devstral-123b',
     label: 'Devstral 123B',
-    description: 'Mistral DevStral 2 — elite coding & instruction model',
+    description: 'Mistral DevStral 2 instruction model',
     provider: 'nvidia',
     apiModel: 'mistralai/devstral-2-123b-instruct-2512',
-    badge: 'Powerful',
+    apiKeyEnvName: 'VITE_NVIDIA_API_KEY_3',
     temperature: 0.15,
     top_p: 0.95,
     max_tokens: 8192,
@@ -65,10 +64,9 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
   {
     id: 'gemini-2-flash',
     label: 'Gemini 2.0 Flash',
-    description: 'Google Gemini 2.0 Flash — fast and capable fallback',
+    description: 'Google Gemini 2.0 Flash',
     provider: 'gemini',
     apiModel: 'gemini-2.0-flash',
-    badge: 'Fallback',
     temperature: 0.7,
     max_tokens: 4096,
   },
@@ -76,58 +74,45 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
 
 // ─── NVIDIA NIM call ────────────────────────────────────────────────────────
 
-const NVIDIA_KEYS = [
-  import.meta.env.VITE_NVIDIA_API_KEY_1,
-  import.meta.env.VITE_NVIDIA_API_KEY_2,
-  import.meta.env.VITE_NVIDIA_API_KEY_3,
-].filter(Boolean);
-
 async function callNvidiaAPI(
   model: ModelDefinition,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  let lastError: Error | null = null;
+  const envKey = model.apiKeyEnvName as keyof ImportMetaEnv;
+  // @ts-ignore
+  const apiKey = import.meta.env[envKey] as string;
 
-  for (const apiKey of NVIDIA_KEYS) {
-    const bodyParams: Record<string, unknown> = {
-      model: model.apiModel,
-      messages,
-      temperature: model.temperature ?? 0.7,
-      top_p: model.top_p ?? 1,
-      max_tokens: model.max_tokens ?? 4096,
-      stream: false,
-    };
-    if (model.reasoning_budget) bodyParams.reasoning_budget = model.reasoning_budget;
-    if (model.chat_template_kwargs) bodyParams.chat_template_kwargs = model.chat_template_kwargs;
-
-    try {
-      const response = await fetch('/nvidia-api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(bodyParams),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`HTTP Error ${response.status}: ${text}`);
-      }
-
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || '{}';
-    } catch (err: any) {
-      lastError = err;
-      // If it's a degraded/server error, try the next key; for client errors, fail fast
-      const is5xx = err.message?.includes('HTTP Error 5') || err.message?.includes('DEGRADED');
-      const is400 = err.message?.includes('HTTP Error 400');
-      if (is400 && err.message?.includes('DEGRADED')) continue; // try next key for degraded
-      if (!is5xx && !is400) throw err; // bad model name, auth, etc. — don't retry
-    }
+  if (!apiKey) {
+    throw new Error(`API Key for ${model.label} not found. Check ${model.apiKeyEnvName}`);
   }
 
-  throw lastError ?? new Error('All NVIDIA API keys failed.');
+  const bodyParams: Record<string, unknown> = {
+    model: model.apiModel,
+    messages,
+    temperature: model.temperature ?? 0.7,
+    top_p: model.top_p ?? 1,
+    max_tokens: model.max_tokens ?? 4096,
+    stream: false,
+  };
+  if (model.reasoning_budget) bodyParams.reasoning_budget = model.reasoning_budget;
+  if (model.chat_template_kwargs) bodyParams.chat_template_kwargs = model.chat_template_kwargs;
+
+  const response = await fetch('/nvidia-api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(bodyParams),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HTTP Error ${response.status}: ${text}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '{}';
 }
 
 // ─── Gemini API call ────────────────────────────────────────────────────────

@@ -6,10 +6,8 @@
   --bg-surface-hover: #1f1f22;
   --text-main: #f5f5f6;
   --text-muted: #8b8b93;
-  --accent-color: #ff4757; /* Pomegranate red/pink */
+  --accent-color: #ff4757;
   --accent-glow: rgba(255, 71, 87, 0.15);
-  --gemini-color: #4285f4;
-  --nvidia-color: #76b900;
   --border-subtle: #27272a;
   --border-focus: #3f3f46;
   --radius-sm: 8px;
@@ -133,7 +131,6 @@ body {
 .composer-section {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -141,151 +138,17 @@ body {
   box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
-/* Model Dropdown */
-.composer-header {
-  display: flex;
-  justify-content: flex-end;
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.model-dropdown-container {
-  position: relative;
-}
-
-.model-dropdown-trigger {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-  color: var(--text-main);
-  transition: all 0.2s;
-}
-
-.model-dropdown-trigger:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: var(--border-focus);
-}
-
-.model-trigger-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.model-name {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.model-badge {
-  font-size: 0.65rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.model-badge.nvidia {
-  background: rgba(118, 185, 0, 0.15);
-  color: var(--nvidia-color);
-  border: 1px solid rgba(118, 185, 0, 0.3);
-}
-
-.model-badge.gemini {
-  background: rgba(66, 133, 244, 0.15);
-  color: #8ab4f8;
-  border: 1px solid rgba(66, 133, 244, 0.3);
-}
-
-.model-badge.small {
-  font-size: 0.55rem;
-  padding: 0.1rem 0.3rem;
-}
-
-.chevron {
-  color: var(--text-muted);
-  transition: transform 0.2s;
-}
-.chevron.open {
-  transform: rotate(180deg);
-}
-
-.model-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 280px;
-  background: #18181b;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.5rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.model-option {
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 0.75rem;
-  border-radius: var(--radius-sm);
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.model-option:hover {
-  background: rgba(255,255,255,0.03);
-}
-
-.model-option.active {
-  background: rgba(255,255,255,0.05);
-  border-color: var(--border-focus);
-}
-
-.model-option-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.model-option-name {
-  color: var(--text-main);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.model-option-desc {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  line-height: 1.4;
-}
-
 .editor-wrapper {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+  margin-bottom: 1.5rem;
 }
 
 .prompt-input {
   width: 100%;
-  min-height: 120px;
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-main);
@@ -295,17 +158,117 @@ body {
   resize: none;
   outline: none;
   overflow: hidden;
+  margin-bottom: 3rem; /* Space for the input footer */
 }
 
 .prompt-input::placeholder {
   color: var(--border-focus);
 }
 
+/* Input Footer & Model Selector */
+.input-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+}
+
+.model-dropdown-container {
+  position: relative;
+}
+
+.model-dropdown-trigger {
+  background: rgba(255, 255, 255, 0.05); /* Sleek dark pill */
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.model-dropdown-trigger:hover,
+.model-dropdown-trigger.active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.model-name {
+  letter-spacing: 0.02em;
+}
+
+.chevron {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.model-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 8px); /* Pop UPWARDS */
+  left: 0;
+  width: 220px;
+  background: #202020; /* Slightly lighter than pitch black for depth */
+  border: 1px solid rgba(255, 255, 255, 0.05); /* Minimalist border */
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpMenu 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpMenu {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.model-dropdown-label {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.model-option {
+  background: transparent;
+  border: none;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-main);
+}
+
+.model-option:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.model-option-name {
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.check-icon {
+  color: var(--text-main);
+  opacity: 0.8;
+}
+
+/* Controls Below Editor */
 .controls-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  margin-top: 0.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-subtle);
 }
@@ -365,7 +328,7 @@ body {
   border: 1px solid rgba(255, 71, 87, 0.3);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   animation: fadeIn 0.3s ease;
 }
 
@@ -376,12 +339,18 @@ body {
   word-wrap: break-word;
 }
 
+/* Action Row */
 .action-row {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  margin-top: 1.5rem;
+}
+
+.enhance-actions {
+  display: flex;
+  align-items: center;
   gap: 1rem;
-  margin-top: 1rem;
 }
 
 .generate-btn {
@@ -398,6 +367,8 @@ body {
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
+  min-width: 100px;
 }
 
 .generate-btn:hover:not(:disabled) {
@@ -450,6 +421,7 @@ body {
   opacity: 0.9;
 }
 
+/* Results section */
 .results-section {
   display: flex;
   flex-direction: column;
@@ -510,24 +482,14 @@ body {
 .icon-btn:hover {
   color: #f4f4f5;
   background: transparent;
-  border: none;
-  transform: none;
-  box-shadow: none;
-}
-
-.icon-btn:active {
-  transform: none;
 }
 
 .icon-btn.active, .icon-btn.copied {
   color: var(--accent-color);
-  background: transparent;
-  border: none;
-  box-shadow: none;
 }
 
 .icon-btn.saved {
-  color: #10b981; /* Emerald green for saved */
+  color: #f4f4f5; 
 }
 
 .divider {
@@ -535,15 +497,6 @@ body {
   height: 16px;
   background: rgba(255, 255, 255, 0.1);
   margin: 0 0.5rem;
-}
-
-/* Minimal SVGs */
-.icon-btn svg {
-  transition: none;
-}
-
-.icon-btn:hover svg {
-  transform: none;
 }
 
 .card-body {
@@ -590,6 +543,7 @@ body {
   width: 100%;
   overflow: hidden;
   resize: none;
+  margin-bottom: 0;
 }
 
 .extend-section {
@@ -625,6 +579,7 @@ body {
   font-size: 0.85rem;
   margin: 0;
   white-space: nowrap;
+  min-width: auto;
 }
 
 /* History Sidebar */
@@ -715,6 +670,14 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
+}
+
+.history-model-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
 .history-time {
