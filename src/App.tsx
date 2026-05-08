@@ -302,32 +302,6 @@ function App() {
 
   const isCurrentPromptSaved = savedPrompts.some(p => p.enhancedPrompt === enhancedPrompt)
 
-  const PillSelector = ({ 
-    label, 
-    options, 
-    value, 
-    onChange 
-  }: { 
-    label: string, 
-    options: string[], 
-    value: string, 
-    onChange: (val: string) => void 
-  }) => (
-    <div className="config-group">
-      <span className="config-label">{label}</span>
-      <div className="pill-container">
-        {options.map((opt) => (
-          <button
-            key={opt}
-            className={`pill ${value === opt ? 'active' : ''}`}
-            onClick={() => onChange(opt)}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
 
   return (
     <div className="app-container">
