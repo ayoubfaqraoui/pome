@@ -73,6 +73,7 @@ function App() {
   const [isExtending, setIsExtending] = useState(false)
   const [extendInput, setExtendInput] = useState('')
   const [isExtendLoading, setIsExtendLoading] = useState(false)
+  const [generation, setGeneration] = useState(0)
 
   const [selectedModel, setSelectedModel] = useState<ModelDefinition>(AVAILABLE_MODELS[0]) // Default to GPT OSS 20B
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
@@ -96,6 +97,7 @@ function App() {
   const resultsRef = useRef<HTMLElement>(null)
   const editAreaRef = useRef<HTMLTextAreaElement>(null)
   const modelDropdownRef = useRef<HTMLDivElement>(null)
+  const hasInteractedRef = useRef(false)
 
   // Load saved prompts from local storage
   useEffect(() => {
@@ -143,6 +145,21 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Track deliberate user interaction so auto-scrolling never fights the user mid-gesture
+  useEffect(() => {
+    const markInteracted = () => { hasInteractedRef.current = true }
+    window.addEventListener('pointerdown', markInteracted)
+    window.addEventListener('keydown', markInteracted)
+    window.addEventListener('wheel', markInteracted, { passive: true })
+    window.addEventListener('touchstart', markInteracted, { passive: true })
+    return () => {
+      window.removeEventListener('pointerdown', markInteracted)
+      window.removeEventListener('keydown', markInteracted)
+      window.removeEventListener('wheel', markInteracted)
+      window.removeEventListener('touchstart', markInteracted)
+    }
+  }, [])
+
   // Auto-expand textarea height as user types — no browser resize handle needed
   useEffect(() => {
     const el = textareaRef.current;
@@ -151,32 +168,36 @@ function App() {
     el.style.height = `${el.scrollHeight}px`;
   }, [rawPrompt])
 
-  // Scroll to results when they appear
+  // Scroll to results when a brand-new generation lands — never on edits/extends,
+  // never while the user is interacting, and instantly so nothing moves under a
+  // text selection in progress
   useEffect(() => {
-    if (enhancedPrompt && !isLoading) {
-      let attempts = 0;
-      
-      const scrollToResults = () => {
-        if (resultsRef.current) {
-          const rect = resultsRef.current.getBoundingClientRect();
-          if (rect.height > 0 || attempts > 5) {
-            const absoluteTop = rect.top + window.scrollY;
-            window.scrollTo({
-              top: absoluteTop - 40,
-              behavior: 'smooth'
-            });
-            return;
-          }
-        }
-        if (attempts < 10) {
-          attempts++;
-          requestAnimationFrame(() => setTimeout(scrollToResults, 50));
-        }
-      };
+    if (!generation || hasInteractedRef.current) return
 
-      requestAnimationFrame(() => setTimeout(scrollToResults, 50));
+    let attempts = 0
+
+    const scrollToResults = () => {
+      if (resultsRef.current) {
+        const rect = resultsRef.current.getBoundingClientRect()
+        if (rect.height > 0) {
+          if (rect.top >= 0 && rect.bottom <= window.innerHeight) return
+          const absoluteTop = rect.top + window.scrollY
+          window.scrollTo({
+            top: absoluteTop - 40,
+            behavior: 'instant'
+          })
+          return
+        }
+        if (attempts > 5) return
+      }
+      if (attempts < 10) {
+        attempts++
+        requestAnimationFrame(() => setTimeout(scrollToResults, 50))
+      }
     }
-  }, [enhancedPrompt, isLoading])
+
+    scrollToResults()
+  }, [generation])
 
   // Keyboard shortcut (Ctrl + Enter)
   useEffect(() => {
@@ -205,11 +226,13 @@ function App() {
     setExplanation('')
     setIsEditing(false)
     setIsExtending(false)
+    hasInteractedRef.current = false
 
     try {
       const result = await enhancePrompt(rawPrompt, config, selectedModel)
       setEnhancedPrompt(result.enhancedPrompt)
       setExplanation(result.explanation)
+      setGeneration(g => g + 1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
